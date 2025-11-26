@@ -60,7 +60,8 @@ def get_dashboard_data(
                 "digital_divide": {"top_tier_avg_growth": 0, "bottom_tier_avg_growth": 0},
                 "correlation": [],
                 "depth_leaders": [],
-                "regional_trends": {}
+                "regional_trends": {},
+                "country_trends": {}
             }
 
         # Determine effective snapshot year (latest year with data in range)
@@ -123,6 +124,21 @@ def get_dashboard_data(
         for region in regional_trends['country_name'].unique():
             regions_dict[region] = regional_trends[regional_trends['country_name'] == region][['year', 'pct_above_basic']].to_dict('records')
 
+        # F. Top Country Trends (Full Range) for Trajectory Chart
+        # Use the top performers identified earlier
+        top_5_iso = top_performers.tolist()
+        df_top_trends = df_countries[df_countries['country_iso_code'].isin(top_5_iso)]
+        
+        country_trends = {}
+        # We iterate through top_5_iso to maintain order of rank
+        for iso in top_5_iso:
+            # Get name safely
+            name_series = df_countries[df_countries['country_iso_code'] == iso]['country_name']
+            if not name_series.empty:
+                c_name = name_series.iloc[0]
+                trend_data = df_top_trends[df_top_trends['country_iso_code'] == iso][['year', 'pct_above_basic']].to_dict('records')
+                country_trends[c_name] = trend_data
+
         return {
             "start_year": start_year,
             "end_year": end_year,
@@ -131,7 +147,8 @@ def get_dashboard_data(
             "digital_divide": divide_data,
             "correlation": correlation_data,
             "depth_leaders": depth_leaders,
-            "regional_trends": regions_dict
+            "regional_trends": regions_dict,
+            "country_trends": country_trends
         }
 
     except Exception as e:

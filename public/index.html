@@ -43,7 +43,6 @@
             background: linear-gradient(to right, #00d2ff, #3a7bd5);
             -webkit-background-clip: text;
             background-clip: text;
-            /* Fix lint ID: 706217a3-9c91-42ed-83ee-a90ecbdd3a6f */
             -webkit-text-fill-color: transparent;
             font-weight: 700;
         }
@@ -53,6 +52,11 @@
             background-color: #21222d;
             color: #fff;
             border: 1px solid #444;
+            transition: all 0.2s;
+        }
+
+        select:hover {
+            border-color: #00d2ff;
         }
 
         /* MathJax White Text Override */
@@ -93,26 +97,28 @@
                 ICT INTELLIGENCE
             </h1>
 
-            <div class="flex items-center gap-3 bg-[#1b1c25] p-2 rounded-lg border border-gray-700">
-                <div class="flex flex-col">
-                    <label class="text-[10px] text-gray-400 font-bold uppercase">From</label>
-                    <input type="number" id="startYear" value="2021" min="2021" max="2024"
-                        class="bg-transparent text-sm font-bold text-white w-16 focus:outline-none focus:text-cyan-400">
+            <div class="flex items-center gap-2 bg-[#1b1c25] p-2 rounded-lg border border-gray-700">
+                <span class="text-xs font-medium text-gray-400 uppercase tracking-wider px-2">Analysis Period</span>
+
+                <div class="flex items-center gap-2">
+                    <!-- Start Year Selector -->
+                    <select id="startYear" onchange="loadDashboard()"
+                        class="text-sm rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-cyan-500 cursor-pointer">
+                        <option value="2021" selected>2021</option>
+                        <option value="2022">2022</option>
+                        <option value="2023">2023</option>
+                    </select>
+
+                    <span class="text-gray-500 text-xs">TO</span>
+
+                    <!-- End Year Selector -->
+                    <select id="endYear" onchange="loadDashboard()"
+                        class="text-sm rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-cyan-500 cursor-pointer">
+                        <option value="2022">2022</option>
+                        <option value="2023" selected>2023</option>
+                        <option value="2024">2024</option>
+                    </select>
                 </div>
-                <span class="text-gray-600">/</span>
-                <div class="flex flex-col">
-                    <label class="text-[10px] text-gray-400 font-bold uppercase">To</label>
-                    <input type="number" id="endYear" value="2023" min="2021" max="2024"
-                        class="bg-transparent text-sm font-bold text-white w-16 focus:outline-none focus:text-cyan-400">
-                </div>
-                <button onclick="loadDashboard()"
-                    class="ml-2 bg-cyan-500/20 hover:bg-cyan-500/40 text-cyan-400 p-1.5 rounded transition-colors">
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2"
-                        stroke="currentColor" class="w-4 h-4">
-                        <path stroke-linecap="round" stroke-linejoin="round"
-                            d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
-                    </svg>
-                </button>
             </div>
         </div>
     </nav>
@@ -130,14 +136,14 @@
         <!-- Section 1: Growth & Gap Metrics -->
         <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
 
-            <!-- Gap Status Card (New Layout) -->
+            <!-- Gap Status Card -->
             <div class="card flex flex-col items-center justify-between col-span-1">
                 <div class="w-full text-center">
                     <h3 class="text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">Digital Gap Status</h3>
                     <div id="gapStatusText" class="text-3xl font-bold mt-1 tracking-tight">--</div>
                 </div>
 
-                <!-- New Graph for Gap Metric -->
+                <!-- Gap Metric Graph -->
                 <div class="w-full h-32 mt-4">
                     <canvas id="gapBarChart"></canvas>
                 </div>
@@ -193,7 +199,7 @@
             <div class="card lg:col-span-1">
                 <div class="mb-6">
                     <h3 class="text-lg font-bold text-white">Top Creators</h3>
-                    <p class="text-xs text-gray-400">Highest density of advanced skills</p>
+                    <p class="text-xs text-gray-400">Highest density of advanced skills (End Year)</p>
                 </div>
                 <div class="chart-box">
                     <canvas id="topChart"></canvas>
@@ -201,12 +207,22 @@
             </div>
         </div>
 
-        <!-- Section 3: Scatter & Ratio -->
+        <!-- Section 3: Trends & Ratio -->
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+
+            <!-- NEW CHART: Multi-Year Trajectory (Replaces Correlation Scatter) -->
             <div class="card">
-                <h3 class="text-lg font-bold text-white mb-6">Skill Correlation Matrix</h3>
+                <div class="mb-6 flex justify-between items-end">
+                    <div>
+                        <h3 class="text-lg font-bold text-white">Skill Evolution Trajectory</h3>
+                        <p class="text-xs text-gray-400">Tracking top markets over selected period</p>
+                    </div>
+                    <div class="px-2 py-1 bg-gray-800 rounded text-[10px] text-cyan-400 border border-cyan-900">
+                        MULTI-YEAR VIEW
+                    </div>
+                </div>
                 <div class="chart-box">
-                    <canvas id="scatterChart"></canvas>
+                    <canvas id="trendChart"></canvas>
                 </div>
             </div>
 
@@ -272,7 +288,7 @@
     <script>
         let charts = {};
 
-        // Mock Data Generator
+        // Mock Data Generator (Handles single year snapshots)
         function getMockData(year) {
             return {
                 "top_advanced": [
@@ -289,10 +305,6 @@
                     { "country": "Finland", "skill_depth_ratio": 2.8 }, { "country": "UK", "skill_depth_ratio": 2.5 },
                     { "country": "Germany", "skill_depth_ratio": 2.2 }
                 ],
-                "correlation": Array.from({ length: 20 }, () => ({
-                    x: Math.floor(Math.random() * 80),
-                    y: Math.floor(Math.random() * 80)
-                })),
                 "regional_index": [
                     { "country_name": "Euro Area", "pct_above_basic": 42 },
                     { "country_name": "OECD", "pct_above_basic": 44 },
@@ -304,10 +316,16 @@
         }
 
         async function loadDashboard() {
-            const startYear = document.getElementById('startYear').value;
-            const endYear = document.getElementById('endYear').value;
-            let data;
+            const startYear = parseInt(document.getElementById('startYear').value);
+            const endYear = parseInt(document.getElementById('endYear').value);
 
+            // Logic validation
+            if (startYear > endYear) {
+                alert("Start year must be before or equal to End year");
+                return;
+            }
+
+            let data;
             try {
                 const response = await fetch(`/api/dashboard-data?start_year=${startYear}&end_year=${endYear}`);
                 if (!response.ok) throw new Error("Backend unavailable");
@@ -315,16 +333,20 @@
                 document.getElementById('mockNotice').classList.add('hidden');
             } catch (e) {
                 console.warn("Using Mock Data");
-                data = getMockData(endYear); // Fallback mock
+                data = getMockData(endYear);
+                // Mock trend data for fallback
+                data.country_trends = {
+                    'Korea, Rep.': [{ year: 2021, pct_above_basic: 70 }, { year: 2022, pct_above_basic: 75 }, { year: 2023, pct_above_basic: 80 }],
+                    'Sweden': [{ year: 2021, pct_above_basic: 61 }, { year: 2022, pct_above_basic: 62 }, { year: 2023, pct_above_basic: 65 }],
+                    'Malaysia': [{ year: 2021, pct_above_basic: 56 }, { year: 2022, pct_above_basic: 60 }, { year: 2023, pct_above_basic: 66 }]
+                };
                 document.getElementById('mockNotice').classList.remove('hidden');
             }
 
-            if (data.correlation && data.correlation[0].pct_basic) {
-                data.correlation = data.correlation.map(d => ({ x: d.pct_basic, y: d.pct_above_basic }));
-            }
-
+            // 2. Render Charts
             updateKPIs(data.digital_divide);
-            renderCharts(data);
+            renderSnapshotCharts(data);
+            renderTrendChart(data.country_trends, startYear, endYear);
         }
 
         function updateKPIs(divideData) {
@@ -390,7 +412,7 @@
             statusText.innerText += " " + arrow;
         }
 
-        function renderCharts(data) {
+        function renderSnapshotCharts(data) {
             Chart.defaults.color = '#737691';
             Chart.defaults.font.family = "'Outfit', sans-serif";
 
@@ -404,31 +426,48 @@
                 }
             };
 
-            // 1. Regional Trends (Multi-line chart)
             const ctxRegion = document.getElementById('regionChart').getContext('2d');
+            const gradientRegion = ctxRegion.createLinearGradient(0, 0, 0, 300);
+            gradientRegion.addColorStop(0, 'rgba(0, 210, 255, 0.5)');
+            gradientRegion.addColorStop(1, 'rgba(0, 210, 255, 0.0)');
 
-            // Prepare datasets for each region
-            // data.regional_trends is { "RegionName": [{year: 2021, pct_above_basic: 40}, ...], ... }
-            let datasets = [];
-            let labels = []; // Years
+            createOrUpdateChart('region', ctxRegion, {
+                type: 'line',
+                data: {
+                    labels: data.regional_index ? data.regional_index.map(d => d.country_name) : [],
+                    datasets: [{
+                        label: 'Maturity',
+                        data: data.regional_index ? data.regional_index.map(d => d.pct_above_basic) : [],
+                        backgroundColor: gradientRegion,
+                        borderColor: '#00d2ff',
+                        borderWidth: 2,
+                        fill: true,
+                        tension: 0.4,
+                        pointBackgroundColor: '#171821',
+                        pointBorderColor: '#00d2ff',
+                        pointBorderWidth: 2,
+                        pointRadius: 4
+                    }]
+                },
+                options: darkOptions
+            });
 
+            // If regional_trends exists (from API), override the chart with multi-line
             if (data.regional_trends) {
                 // Collect all unique years for labels
                 const allYears = new Set();
                 Object.values(data.regional_trends).forEach(points => points.forEach(p => allYears.add(p.year)));
-                labels = Array.from(allYears).sort();
+                const labels = Array.from(allYears).sort();
 
-                // Create a dataset for each region
                 const colors = ['#00d2ff', '#7000ff', '#ff0055', '#10b981', '#f59e0b'];
                 let colorIdx = 0;
+                const datasets = [];
 
                 for (const [region, points] of Object.entries(data.regional_trends)) {
-                    // Map points to the sorted labels (fill missing with null)
                     const dataPoints = labels.map(year => {
                         const pt = points.find(p => p.year === year);
                         return pt ? pt.pct_above_basic : null;
                     });
-
                     datasets.push({
                         label: region,
                         data: dataPoints,
@@ -436,36 +475,21 @@
                         backgroundColor: colors[colorIdx % colors.length],
                         borderWidth: 2,
                         tension: 0.4,
-                        pointRadius: 3
+                        pointRadius: 3,
+                        fill: false
                     });
                     colorIdx++;
                 }
-            } else if (data.regional_index) {
-                // Fallback for mock data structure
-                labels = data.regional_index.map(d => d.country_name);
-                datasets = [{
-                    label: 'Maturity',
-                    data: data.regional_index.map(d => d.pct_above_basic),
-                    backgroundColor: '#00d2ff',
-                    borderColor: '#00d2ff',
-                    borderWidth: 2,
-                    fill: true
-                }];
-            }
 
-            createOrUpdateChart('region', ctxRegion, {
-                type: 'line',
-                data: {
-                    labels: labels,
-                    datasets: datasets
-                },
-                options: {
-                    ...darkOptions,
-                    plugins: {
-                        legend: { display: true, labels: { color: '#fff', font: { size: 10 } } }
+                createOrUpdateChart('region', ctxRegion, {
+                    type: 'line',
+                    data: { labels: labels, datasets: datasets },
+                    options: {
+                        ...darkOptions,
+                        plugins: { legend: { display: true, labels: { color: '#fff', font: { size: 10 } } } }
                     }
-                }
-            });
+                });
+            }
 
             const ctxTop = document.getElementById('topChart').getContext('2d');
             createOrUpdateChart('top', ctxTop, {
@@ -489,20 +513,6 @@
                 }
             });
 
-            const ctxScatter = document.getElementById('scatterChart').getContext('2d');
-            createOrUpdateChart('scatter', ctxScatter, {
-                type: 'scatter',
-                data: {
-                    datasets: [{
-                        data: data.correlation,
-                        backgroundColor: '#ff0055',
-                        pointRadius: 3,
-                        pointHoverRadius: 6
-                    }]
-                },
-                options: darkOptions
-            });
-
             const ctxRatio = document.getElementById('ratioChart').getContext('2d');
             createOrUpdateChart('ratio', ctxRatio, {
                 type: 'bar',
@@ -515,6 +525,58 @@
                     }]
                 },
                 options: darkOptions
+            });
+        }
+
+        function renderTrendChart(countryTrends, start, end) {
+            if (!countryTrends) return;
+
+            const years = [];
+            for (let y = start; y <= end; y++) years.push(y);
+
+            const colors = ['#00d2ff', '#a855f7', '#f43f5e', '#10b981', '#f59e0b'];
+            let colorIdx = 0;
+            const datasets = [];
+
+            for (const [country, points] of Object.entries(countryTrends)) {
+                // Align data to the year labels
+                const dataPoints = years.map(year => {
+                    const pt = points.find(p => p.year === year);
+                    return pt ? pt.pct_above_basic : null;
+                });
+
+                datasets.push({
+                    label: country,
+                    data: dataPoints,
+                    borderColor: colors[colorIdx % colors.length],
+                    backgroundColor: colors[colorIdx % colors.length] + '1A', // 10% opacity
+                    tension: 0.4,
+                    borderWidth: 2,
+                    pointRadius: 4,
+                    pointBackgroundColor: '#171821',
+                    fill: false
+                });
+                colorIdx++;
+            }
+
+            const ctxTrend = document.getElementById('trendChart').getContext('2d');
+            createOrUpdateChart('trend', ctxTrend, {
+                type: 'line',
+                data: {
+                    labels: years,
+                    datasets: datasets
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: true, labels: { color: '#9ca3af', font: { size: 10 }, boxWidth: 10 } }
+                    },
+                    scales: {
+                        x: { grid: { color: 'rgba(255, 255, 255, 0.05)' }, ticks: { color: '#737691' } },
+                        y: { grid: { color: 'rgba(255, 255, 255, 0.05)' }, ticks: { color: '#737691' } }
+                    }
+                }
             });
         }
 
