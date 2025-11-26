@@ -1,4 +1,4 @@
-# Global Digital Skills Analytics 🌍📊
+# Global Digital Skills Analytics
 
 **Business Intelligence & Data Warehouse Final Project**
 
@@ -20,19 +20,19 @@ This project implements a full ETL (Extract, Transform, Load) pipeline and a mod
 
 We track four core metrics to evaluate digital maturity:
 
-1.  **Digital Literacy Rate** 📖
+1.  **Digital Literacy Rate**
     *   *Definition:* The percentage of the population possessing "Basic" vs. "Above Basic" computer skills.
     *   *Purpose:* Serves as the baseline metric for national digital competency.
 
-2.  **Skill Depth Ratio** 🧠
+2.  **Skill Depth Ratio**
     *   *Formula:* $\frac{\text{Above Basic \%}}{\text{Basic \%}}$
     *   *Interpretation:* A higher ratio indicates a workforce that isn't just literate but highly skilled. It measures the conversion of basic users into advanced creators.
 
-3.  **Year-over-Year (YoY) Growth** 📈
+3.  **Year-over-Year (YoY) Growth**
     *   *Formula:* $\frac{(\text{Current Year \%} - \text{Previous Year \%})}{\text{Previous Year \%}}$
     *   *Purpose:* Measures the velocity of skill acquisition. How fast is a population upskilling?
 
-4.  **Regional Maturity Index** 🌐
+4.  **Regional Maturity Index**
     *   *Definition:* Aggregated scores for broader economic zones (e.g., Euro Area, OECD, Arab World).
     *   *Purpose:* Allows for macro-economic comparisons beyond individual country performance.
 
@@ -42,11 +42,11 @@ We track four core metrics to evaluate digital maturity:
 
 The dashboard is designed to answer critical business questions:
 
-*   **🏆 Who are the Advanced Creators?**
+*   **Who are the Advanced Creators?**
     *   Which countries have the highest density of "Above Basic" skills? We compare leaders like South Korea against the global average to identify hubs of digital innovation.
-*   **⚖️ Is the Digital Divide Widening?**
+*   **Is the Digital Divide Widening?**
     *   By comparing the YoY growth rates of top-tier nations vs. bottom-tier nations, we determine if lagging countries are catching up or falling further behind.
-*   **🔗 The Skill Correlation**
+*   **The Skill Correlation**
     *   What is the relationship between "Basic" and "Above Basic" skills? Do countries with high basic literacy automatically develop advanced skills, or is there a "middle-skill trap" (drop-off)?
 
 ---
