@@ -23,10 +23,15 @@ def read_api_root():
     return {"message": "API is running. Go to /api/dashboard-data for data."}
 
 @app.get("/api/dashboard-data")
-def get_dashboard_data(year: int = Query(2023, description="Target year for snapshot")):
+def get_dashboard_data(
+    start_year: int = Query(2021, description="Start year of analysis"), 
+    end_year: int = Query(2023, description="End year of analysis")
+):
     """
-    Fetches all data, calculates KPIs (YoY, Ratios, Correlations), 
-    and returns a consolidated JSON object for the dashboard.
+    Fetches data for a date range.
+    - Growth is calculated from start_year to end_year.
+    - Snapshot charts (Top 10, Scatter) use end_year data.
+    - Trend charts use the full range.
     """
     try:
         engine = get_db_connection()
@@ -44,48 +49,68 @@ def get_dashboard_data(year: int = Query(2023, description="Target year for snap
             lambda x: round(x['pct_above_basic'] / x['pct_basic'], 2) if x['pct_basic'] > 0 else 0, axis=1
         )
 
-        # 4. KPI: YoY Growth
-        df = df.sort_values(by=['country_iso_code', 'year'])
-        df['growth_advanced'] = df.groupby('country_iso_code')['pct_above_basic'].pct_change() * 100
-        df['growth_advanced'] = df['growth_advanced'].fillna(0).round(2)
-
+        # 4. Filter for Range
+        df_range = df[(df['year'] >= start_year) & (df['year'] <= end_year)].copy()
+        
         # 5. Separation: Regions vs Countries
         region_codes = ['EMU', 'EUU', 'OED', 'CEB', 'EAS', 'LCN', 'MEA', 'NAC', 'SAS', 'SSF', 'WLD']
-        df_regions = df[df['country_iso_code'].isin(region_codes)]
-        df_countries = df[~df['country_iso_code'].isin(region_codes)]
+        df_regions = df_range[df_range['country_iso_code'].isin(region_codes)]
+        df_countries = df_range[~df_range['country_iso_code'].isin(region_codes)]
+
+        # --- CALCULATE GROWTH (Start to End) ---
+        # Get values at start and end year for each country
+        growth_df = df_countries[df_countries['year'].isin([start_year, end_year])].pivot(
+            index='country_iso_code', columns='year', values='pct_above_basic'
+        )
+        
+        # Calculate percentage growth: ((End - Start) / Start) * 100
+        if start_year in growth_df.columns and end_year in growth_df.columns:
+            growth_df['growth'] = ((growth_df[end_year] - growth_df[start_year]) / growth_df[start_year]) * 100
+        else:
+            growth_df['growth'] = 0
+            
+        growth_df['growth'] = growth_df['growth'].fillna(0).replace([float('inf'), -float('inf')], 0)
 
         # --- PREPARE RESPONSE ---
         
-        current_year_df = df_countries[df_countries['year'] == year].copy()
+        # Snapshot Data (Latest Year in Range)
+        latest_year_df = df_countries[df_countries['year'] == end_year].copy()
         
-        # A. Top Countries
-        top_advanced = current_year_df.nlargest(10, 'pct_above_basic')[['country_name', 'pct_above_basic']].to_dict('records')
+        # A. Top Countries (Snapshot)
+        top_advanced = latest_year_df.nlargest(10, 'pct_above_basic')[['country_name', 'pct_above_basic']].to_dict('records')
         
-        # B. Digital Divide
-        top_performers = current_year_df.nlargest(5, 'pct_above_basic')['country_iso_code']
-        bottom_performers = current_year_df.nsmallest(5, 'pct_above_basic')['country_iso_code']
+        # B. Digital Divide (Growth over Range)
+        # Identify top/bottom performers based on LATEST proficiency
+        top_performers = latest_year_df.nlargest(5, 'pct_above_basic')['country_iso_code']
+        bottom_performers = latest_year_df.nsmallest(5, 'pct_above_basic')['country_iso_code']
         
         divide_data = {
-            "top_tier_avg_growth": current_year_df[current_year_df['country_iso_code'].isin(top_performers)]['growth_advanced'].mean(),
-            "bottom_tier_avg_growth": current_year_df[current_year_df['country_iso_code'].isin(bottom_performers)]['growth_advanced'].mean()
+            "top_tier_avg_growth": growth_df[growth_df.index.isin(top_performers)]['growth'].mean(),
+            "bottom_tier_avg_growth": growth_df[growth_df.index.isin(bottom_performers)]['growth'].mean()
         }
 
-        # C. Correlation
-        correlation_data = current_year_df[['country_name', 'pct_basic', 'pct_above_basic']].to_dict('records')
+        # C. Correlation (Snapshot)
+        correlation_data = latest_year_df[['country_name', 'pct_basic', 'pct_above_basic']].to_dict('records')
 
-        # D. Skill Depth Leaders
-        depth_leaders = current_year_df.nlargest(10, 'skill_depth_ratio')[['country_name', 'skill_depth_ratio']].to_dict('records')
+        # D. Skill Depth Leaders (Snapshot)
+        depth_leaders = latest_year_df.nlargest(10, 'skill_depth_ratio')[['country_name', 'skill_depth_ratio']].to_dict('records')
 
-        # E. Regional Index
-        regional_data = df_regions[df_regions['year'] == year][['country_name', 'pct_above_basic']].to_dict('records')
+        # E. Regional Trends (Full Range)
+        # Group by region and year to get the trend line
+        regional_trends = df_regions.groupby(['country_name', 'year'])['pct_above_basic'].mean().reset_index()
+        # Pivot for easier frontend consumption: { "Euro Area": [ {year: 2021, val: 40}, ... ] }
+        regions_dict = {}
+        for region in regional_trends['country_name'].unique():
+            regions_dict[region] = regional_trends[regional_trends['country_name'] == region][['year', 'pct_above_basic']].to_dict('records')
 
         return {
-            "year": year,
+            "start_year": start_year,
+            "end_year": end_year,
             "top_advanced": top_advanced,
             "digital_divide": divide_data,
             "correlation": correlation_data,
             "depth_leaders": depth_leaders,
-            "regional_index": regional_data
+            "regional_trends": regions_dict
         }
 
     except Exception as e:

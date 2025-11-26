@@ -42,6 +42,8 @@
         .text-neon {
             background: linear-gradient(to right, #00d2ff, #3a7bd5);
             -webkit-background-clip: text;
+            background-clip: text;
+            /* Fix lint ID: 706217a3-9c91-42ed-83ee-a90ecbdd3a6f */
             -webkit-text-fill-color: transparent;
             font-weight: 700;
         }
@@ -91,15 +93,26 @@
                 ICT INTELLIGENCE
             </h1>
 
-            <div class="flex items-center gap-3">
-                <span class="text-xs font-medium text-gray-400 uppercase tracking-wider">Analysis Year</span>
-                <select id="yearSelect" onchange="loadDashboard()"
-                    class="text-sm rounded px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-cyan-500">
-                    <option value="2024">2024</option>
-                    <option value="2023" selected>2023</option>
-                    <option value="2022">2022</option>
-                    <option value="2021">2021</option>
-                </select>
+            <div class="flex items-center gap-3 bg-[#1b1c25] p-2 rounded-lg border border-gray-700">
+                <div class="flex flex-col">
+                    <label class="text-[10px] text-gray-400 font-bold uppercase">From</label>
+                    <input type="number" id="startYear" value="2015" min="2000" max="2024"
+                        class="bg-transparent text-sm font-bold text-white w-16 focus:outline-none focus:text-cyan-400">
+                </div>
+                <span class="text-gray-600">/</span>
+                <div class="flex flex-col">
+                    <label class="text-[10px] text-gray-400 font-bold uppercase">To</label>
+                    <input type="number" id="endYear" value="2023" min="2000" max="2024"
+                        class="bg-transparent text-sm font-bold text-white w-16 focus:outline-none focus:text-cyan-400">
+                </div>
+                <button onclick="loadDashboard()"
+                    class="ml-2 bg-cyan-500/20 hover:bg-cyan-500/40 text-cyan-400 p-1.5 rounded transition-colors">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2"
+                        stroke="currentColor" class="w-4 h-4">
+                        <path stroke-linecap="round" stroke-linejoin="round"
+                            d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
+                    </svg>
+                </button>
             </div>
         </div>
     </nav>
@@ -291,17 +304,18 @@
         }
 
         async function loadDashboard() {
-            const year = document.getElementById('yearSelect').value;
+            const startYear = document.getElementById('startYear').value;
+            const endYear = document.getElementById('endYear').value;
             let data;
 
             try {
-                const response = await fetch(`/api/dashboard-data?year=${year}`);
+                const response = await fetch(`/api/dashboard-data?start_year=${startYear}&end_year=${endYear}`);
                 if (!response.ok) throw new Error("Backend unavailable");
                 data = await response.json();
                 document.getElementById('mockNotice').classList.add('hidden');
             } catch (e) {
                 console.warn("Using Mock Data");
-                data = getMockData(year);
+                data = getMockData(endYear); // Fallback mock
                 document.getElementById('mockNotice').classList.remove('hidden');
             }
 
@@ -390,30 +404,67 @@
                 }
             };
 
+            // 1. Regional Trends (Multi-line chart)
             const ctxRegion = document.getElementById('regionChart').getContext('2d');
-            const gradientRegion = ctxRegion.createLinearGradient(0, 0, 0, 300);
-            gradientRegion.addColorStop(0, 'rgba(0, 210, 255, 0.5)');
-            gradientRegion.addColorStop(1, 'rgba(0, 210, 255, 0.0)');
+
+            // Prepare datasets for each region
+            // data.regional_trends is { "RegionName": [{year: 2021, pct_above_basic: 40}, ...], ... }
+            let datasets = [];
+            let labels = []; // Years
+
+            if (data.regional_trends) {
+                // Collect all unique years for labels
+                const allYears = new Set();
+                Object.values(data.regional_trends).forEach(points => points.forEach(p => allYears.add(p.year)));
+                labels = Array.from(allYears).sort();
+
+                // Create a dataset for each region
+                const colors = ['#00d2ff', '#7000ff', '#ff0055', '#10b981', '#f59e0b'];
+                let colorIdx = 0;
+
+                for (const [region, points] of Object.entries(data.regional_trends)) {
+                    // Map points to the sorted labels (fill missing with null)
+                    const dataPoints = labels.map(year => {
+                        const pt = points.find(p => p.year === year);
+                        return pt ? pt.pct_above_basic : null;
+                    });
+
+                    datasets.push({
+                        label: region,
+                        data: dataPoints,
+                        borderColor: colors[colorIdx % colors.length],
+                        backgroundColor: colors[colorIdx % colors.length],
+                        borderWidth: 2,
+                        tension: 0.4,
+                        pointRadius: 3
+                    });
+                    colorIdx++;
+                }
+            } else if (data.regional_index) {
+                // Fallback for mock data structure
+                labels = data.regional_index.map(d => d.country_name);
+                datasets = [{
+                    label: 'Maturity',
+                    data: data.regional_index.map(d => d.pct_above_basic),
+                    backgroundColor: '#00d2ff',
+                    borderColor: '#00d2ff',
+                    borderWidth: 2,
+                    fill: true
+                }];
+            }
 
             createOrUpdateChart('region', ctxRegion, {
                 type: 'line',
                 data: {
-                    labels: data.regional_index.map(d => d.country_name),
-                    datasets: [{
-                        label: 'Maturity',
-                        data: data.regional_index.map(d => d.pct_above_basic),
-                        backgroundColor: gradientRegion,
-                        borderColor: '#00d2ff',
-                        borderWidth: 2,
-                        fill: true,
-                        tension: 0.4,
-                        pointBackgroundColor: '#171821',
-                        pointBorderColor: '#00d2ff',
-                        pointBorderWidth: 2,
-                        pointRadius: 4
-                    }]
+                    labels: labels,
+                    datasets: datasets
                 },
-                options: darkOptions
+                options: {
+                    ...darkOptions,
+                    plugins: {
+                        legend: { display: true, labels: { color: '#fff', font: { size: 10 } } }
+                    }
+                }
             });
 
             const ctxTop = document.getElementById('topChart').getContext('2d');
