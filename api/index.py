@@ -115,46 +115,23 @@ def get_dashboard_data(
         # Filter out 0 ratio
         depth_leaders = latest_year_df[latest_year_df['skill_depth_ratio'] > 0].nlargest(10, 'skill_depth_ratio')[['country_name', 'skill_depth_ratio']].to_dict('records')
 
-        # E. Trends (Dynamic Aggregation)
-        # Instead of relying on sparse 'region' rows, we calculate trends from country data.
-        
-        # 1. Global Average Trend
-        global_trend = df_countries.groupby('year')['pct_above_basic'].mean().reset_index()
-        
-        # 2. Top Performers Trend (Top 10 avg per year)
-        # We need to be careful: different countries might be top in different years.
-        # But for a trend line, taking the top N of that specific year is a valid "frontier" metric.
-        top_trend = df_countries.groupby('year').apply(
-            lambda x: x.nlargest(10, 'pct_above_basic')['pct_above_basic'].mean()
-        ).reset_index(name='pct_above_basic')
-
-        # 3. Emerging/Low Trend (Bottom 10 avg per year, excluding 0s to avoid noise)
-        low_trend = df_countries[df_countries['pct_above_basic'] > 0].groupby('year').apply(
-            lambda x: x.nsmallest(10, 'pct_above_basic')['pct_above_basic'].mean()
-        ).reset_index(name='pct_above_basic')
-
-        trends_dict = {
-            "Global Average": global_trend.to_dict('records'),
-            "Top Performers": top_trend.to_dict('records'),
-            "Emerging Economies": low_trend.to_dict('records')
-        }
-        
-        # Add original regions if they have enough data points (>= 2) to be useful
-        regional_trends_raw = df_regions.groupby(['country_name', 'year'])['pct_above_basic'].mean().reset_index()
-        for region in regional_trends_raw['country_name'].unique():
-            region_data = regional_trends_raw[regional_trends_raw['country_name'] == region]
-            if len(region_data) >= 2: # Only add if it forms a line
-                trends_dict[region] = region_data[['year', 'pct_above_basic']].to_dict('records')
+        # E. Regional Trends (Full Range)
+        # Group by region and year to get the trend line
+        regional_trends = df_regions.groupby(['country_name', 'year'])['pct_above_basic'].mean().reset_index()
+        # Pivot for easier frontend consumption: { "Euro Area": [ {year: 2021, val: 40}, ... ] }
+        regions_dict = {}
+        for region in regional_trends['country_name'].unique():
+            regions_dict[region] = regional_trends[regional_trends['country_name'] == region][['year', 'pct_above_basic']].to_dict('records')
 
         return {
             "start_year": start_year,
             "end_year": end_year,
-            "snapshot_year": int(snapshot_year),
+            "snapshot_year": int(snapshot_year), # Return this so frontend knows
             "top_advanced": top_advanced,
             "digital_divide": divide_data,
             "correlation": correlation_data,
             "depth_leaders": depth_leaders,
-            "regional_trends": trends_dict
+            "regional_trends": regions_dict
         }
 
     except Exception as e:
