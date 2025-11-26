@@ -170,12 +170,12 @@
         <!-- Section 2: Main Charts -->
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
 
-            <!-- Regional Maturity -->
+            <!-- Global Maturity -->
             <div class="card lg:col-span-2">
                 <div class="flex justify-between items-center mb-6">
                     <div>
-                        <h3 class="text-lg font-bold text-white">Regional Maturity Trends</h3>
-                        <p class="text-xs text-gray-400">Aggregated performance by economic zone</p>
+                        <h3 class="text-lg font-bold text-white">Global Skill Maturity Trends</h3>
+                        <p class="text-xs text-gray-400">Longitudinal performance (Global vs Top/Emerging)</p>
                     </div>
                     <div class="flex gap-4">
                         <div class="flex items-center gap-2">
@@ -436,7 +436,8 @@
                         backgroundColor: colors[colorIdx % colors.length],
                         borderWidth: 2,
                         tension: 0.4,
-                        pointRadius: 3
+                        pointRadius: 3,
+                        spanGaps: true // Ensure lines connect even if data is missing
                     });
                     colorIdx++;
                 }
