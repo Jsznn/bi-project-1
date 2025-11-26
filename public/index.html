@@ -9,37 +9,71 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Phosphor Icons -->
-    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    <!-- MathJax -->
+    <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
 
     <style>
+        /* Dark Theme & Custom Font */
+        @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap');
+
+        body {
+            font-family: 'Outfit', sans-serif;
+            background-color: #171821;
+            color: #ffffff;
+        }
+
+        /* Card Styling to match the 'Space' Image */
         .card {
-            @apply bg-white rounded-xl shadow-md border border-gray-100 p-5;
+            background-color: #21222d;
+            border-radius: 12px;
+            padding: 24px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.5);
+            border: 1px solid rgba(255, 255, 255, 0.05);
         }
 
         .chart-box {
-            @apply relative w-full h-64;
+            position: relative;
+            width: 100%;
+            height: 300px;
+        }
+
+        /* Neon Text Gradient */
+        .text-neon {
+            background: linear-gradient(to right, #00d2ff, #3a7bd5);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            font-weight: 700;
+        }
+
+        /* Form Controls Dark Mode */
+        select {
+            background-color: #21222d;
+            color: #fff;
+            border: 1px solid #444;
+        }
+
+        /* MathJax White Text Override */
+        mjx-container {
+            color: #a0aec0 !important;
+            font-size: 90% !important;
         }
     </style>
 </head>
 
-<body class="bg-slate-50 min-h-screen text-slate-800 font-sans">
+<body class="antialiased selection:bg-cyan-500 selection:text-white">
 
-    <!-- Top Navigation -->
-    <nav class="bg-white border-b border-gray-200 sticky top-0 z-50">
-        <div class="container mx-auto px-4 py-3 flex justify-between items-center">
-            <div class="flex items-center gap-2">
-                <div class="bg-blue-600 text-white p-1.5 rounded-lg">
-                    <i class="ph ph-chart-polar text-xl"></i>
-                </div>
-                <span class="font-bold text-lg tracking-tight">ICT <span
-                        class="text-blue-600">Intelligence</span></span>
-            </div>
+    <!-- Navigation -->
+    <nav class="bg-[#21222d] border-b border-gray-800 sticky top-0 z-50">
+        <div class="container mx-auto px-6 py-4 flex justify-between items-center">
+            <h1 class="text-2xl tracking-wide text-neon">
+                ICT INTELLIGENCE
+            </h1>
 
-            <div class="flex items-center gap-4">
-                <span class="text-sm text-gray-500">Analysis Year:</span>
+            <div class="flex items-center gap-3">
+                <span class="text-xs font-medium text-gray-400 uppercase tracking-wider">Analysis Year</span>
                 <select id="yearSelect" onchange="loadDashboard()"
-                    class="bg-gray-100 border-none text-sm font-semibold rounded-md py-1 px-3 focus:ring-2 focus:ring-blue-500">
+                    class="text-sm rounded px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-cyan-500">
                     <option value="2024">2024</option>
                     <option value="2023" selected>2023</option>
                     <option value="2022">2022</option>
@@ -49,95 +83,79 @@
         </div>
     </nav>
 
-    <div class="container mx-auto px-4 py-8">
+    <div class="container mx-auto px-6 py-8 max-w-7xl">
 
         <!-- Mock Data Warning -->
-        <div id="mockNotice"
-            class="hidden mb-6 bg-amber-50 border-l-4 border-amber-400 p-4 rounded-r shadow-sm flex items-start">
-            <i class="ph ph-warning-circle text-amber-500 text-xl mr-3 mt-0.5"></i>
-            <div>
-                <h4 class="text-sm font-bold text-amber-800">Preview Mode Active</h4>
-                <p class="text-xs text-amber-700 mt-1">
-                    Calculations (YoY, Correlations) are simulated. Deploy to Vercel to run the Python Pandas engine for
-                    accurate analytics.
-                </p>
+        <div id="mockNotice" class="hidden mb-6 text-center">
+            <span
+                class="inline-block px-4 py-1 rounded-full bg-cyan-900/30 text-cyan-400 text-xs font-medium border border-cyan-500/30">
+                ⚠️ Preview Mode: Simulating live data connection
+            </span>
+        </div>
+
+        <!-- Section 1: Top Metrics (KPIs) -->
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+
+            <!-- Skill Depth (Donut Style) -->
+            <div class="card flex flex-col items-center justify-center relative col-span-1">
+                <h3 class="absolute top-4 left-4 text-xs font-bold text-gray-400 uppercase">Gap Status</h3>
+                <div class="w-32 h-32 relative mt-4">
+                    <canvas id="gapDonut"></canvas>
+                    <div class="absolute inset-0 flex items-center justify-center flex-col">
+                        <span id="gapStatusText" class="text-xs text-gray-400">Status</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- KPI Cards (Neon Stats) -->
+            <div class="card col-span-3 grid grid-cols-1 md:grid-cols-3 gap-8 items-center">
+                <!-- Top Growth -->
+                <div>
+                    <h3 class="text-xs font-bold text-cyan-400 uppercase tracking-widest mb-1">Top Tier Growth</h3>
+                    <div class="flex items-end gap-2">
+                        <span id="topGrowth" class="text-4xl font-bold text-white">--%</span>
+                    </div>
+                    <div class="w-full bg-gray-700 h-1 mt-3 rounded-full overflow-hidden">
+                        <div class="bg-gradient-to-r from-cyan-500 to-blue-500 h-full" style="width: 75%"></div>
+                    </div>
+                </div>
+
+                <!-- Bottom Growth -->
+                <div>
+                    <h3 class="text-xs font-bold text-pink-500 uppercase tracking-widest mb-1">Bottom Tier Growth</h3>
+                    <div class="flex items-end gap-2">
+                        <span id="bottomGrowth" class="text-4xl font-bold text-white">--%</span>
+                    </div>
+                    <div class="w-full bg-gray-700 h-1 mt-3 rounded-full overflow-hidden">
+                        <div class="bg-gradient-to-r from-pink-500 to-purple-500 h-full" style="width: 35%"></div>
+                    </div>
+                </div>
+
+                <!-- Equation Box -->
+                <div class="bg-[#171821] p-4 rounded-lg border border-gray-700">
+                    <p class="text-[10px] text-gray-400 font-bold mb-2 uppercase">Core Metric Formula</p>
+                    <p class="text-sm font-mono text-gray-300">$$ \text{Ratio} = \frac{\text{Advanced \%}}{\text{Basic
+                        \%}} $$</p>
+                </div>
             </div>
         </div>
 
-        <!-- KPI Cards: Digital Divide -->
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-            <div class="card border-l-4 border-l-blue-500">
-                <h3 class="text-gray-500 text-xs font-bold uppercase tracking-wider mb-1">Top Tier Growth (YoY)</h3>
-                <div class="flex items-end gap-2">
-                    <span id="topGrowth" class="text-3xl font-extrabold text-gray-900">--%</span>
-                    <span class="text-xs text-green-600 font-medium mb-1 bg-green-50 px-1.5 py-0.5 rounded">+ Fast
-                        Adopters</span>
-                </div>
-            </div>
+        <!-- Section 2: Main Charts -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
 
-            <div class="card border-l-4 border-l-orange-500">
-                <h3 class="text-gray-500 text-xs font-bold uppercase tracking-wider mb-1">Bottom Tier Growth (YoY)</h3>
-                <div class="flex items-end gap-2">
-                    <span id="bottomGrowth" class="text-3xl font-extrabold text-gray-900">--%</span>
-                    <span class="text-xs text-orange-600 font-medium mb-1 bg-orange-50 px-1.5 py-0.5 rounded">Catching
-                        Up?</span>
-                </div>
-            </div>
-
-            <div class="card border-l-4 border-l-purple-500">
-                <h3 class="text-gray-500 text-xs font-bold uppercase tracking-wider mb-1">Gap Status</h3>
-                <div class="flex items-end gap-2">
-                    <span id="gapStatus" class="text-2xl font-extrabold text-gray-900">--</span>
-                </div>
-                <p class="text-xs text-gray-400 mt-2">Is the digital divide widening?</p>
-            </div>
-        </div>
-
-        <!-- Analytics Grid -->
-        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
-
-            <!-- Chart 1: Skill Depth Ratio -->
-            <div class="card">
-                <div class="flex justify-between items-start mb-4">
+            <!-- Main Area Chart (Regional Maturity) - Matches "Completed Flights" -->
+            <div class="card lg:col-span-2">
+                <div class="flex justify-between items-center mb-6">
                     <div>
-                        <h3 class="font-bold text-lg text-gray-800">Skill Depth Ratio</h3>
-                        <p class="text-xs text-gray-500">Ratio of Advanced to Basic Skills (Higher is deeper expertise)
-                        </p>
+                        <h3 class="text-lg font-bold text-white">Regional Maturity Trends</h3>
+                        <p class="text-xs text-gray-400">Aggregated performance by economic zone</p>
                     </div>
-                    <div class="p-2 bg-purple-100 text-purple-600 rounded-lg">
-                        <i class="ph ph-trend-up"></i>
-                    </div>
-                </div>
-                <div class="chart-box">
-                    <canvas id="ratioChart"></canvas>
-                </div>
-            </div>
-
-            <!-- Chart 2: Correlation Scatter -->
-            <div class="card">
-                <div class="flex justify-between items-start mb-4">
-                    <div>
-                        <h3 class="font-bold text-lg text-gray-800">Skill Correlation</h3>
-                        <p class="text-xs text-gray-500">Do Basic Skills (X) predict Advanced Skills (Y)?</p>
-                    </div>
-                    <div class="p-2 bg-blue-100 text-blue-600 rounded-lg">
-                        <i class="ph ph-dots-three-circle"></i>
-                    </div>
-                </div>
-                <div class="chart-box">
-                    <canvas id="scatterChart"></canvas>
-                </div>
-            </div>
-
-            <!-- Chart 3: Regional Maturity -->
-            <div class="card">
-                <div class="flex justify-between items-start mb-4">
-                    <div>
-                        <h3 class="font-bold text-lg text-gray-800">Regional Maturity Index</h3>
-                        <p class="text-xs text-gray-500">Aggregated performance by economic zone</p>
-                    </div>
-                    <div class="p-2 bg-emerald-100 text-emerald-600 rounded-lg">
-                        <i class="ph ph-globe"></i>
+                    <!-- Legend Dots -->
+                    <div class="flex gap-4">
+                        <div class="flex items-center gap-2">
+                            <div class="w-2 h-2 rounded-full bg-cyan-500"></div><span
+                                class="text-xs text-gray-400">Advanced</span>
+                        </div>
                     </div>
                 </div>
                 <div class="chart-box">
@@ -145,31 +163,42 @@
                 </div>
             </div>
 
-            <!-- Chart 4: Top Advanced Creators -->
-            <div class="card">
-                <div class="flex justify-between items-start mb-4">
-                    <div>
-                        <h3 class="font-bold text-lg text-gray-800">Advanced Creators Density</h3>
-                        <p class="text-xs text-gray-500">Top countries by 'Above Basic' proficiency</p>
-                    </div>
-                    <div class="p-2 bg-indigo-100 text-indigo-600 rounded-lg">
-                        <i class="ph ph-trophy"></i>
-                    </div>
+            <!-- Top Creators (Matches "Top 5 Stores") -->
+            <div class="card lg:col-span-1">
+                <div class="mb-6">
+                    <h3 class="text-lg font-bold text-white">Top Creators</h3>
+                    <p class="text-xs text-gray-400">Highest density of advanced skills</p>
                 </div>
                 <div class="chart-box">
                     <canvas id="topChart"></canvas>
                 </div>
             </div>
-
         </div>
+
+        <!-- Section 3: Scatter & Ratio -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div class="card">
+                <h3 class="text-lg font-bold text-white mb-6">Skill Correlation Matrix</h3>
+                <div class="chart-box">
+                    <canvas id="scatterChart"></canvas>
+                </div>
+            </div>
+
+            <div class="card">
+                <h3 class="text-lg font-bold text-white mb-6">Depth Ratio Ranking</h3>
+                <div class="chart-box">
+                    <canvas id="ratioChart"></canvas>
+                </div>
+            </div>
+        </div>
+
     </div>
 
     <!-- Logic Script -->
     <script>
-        // Global Chart Instances
         let charts = {};
 
-        // --- MOCK DATA GENERATOR (For Preview) ---
+        // Mock Data Generator
         function getMockData(year) {
             return {
                 "top_advanced": [
@@ -178,24 +207,24 @@
                     { "country": "Switzerland", "pct_above_basic": 57.3 }
                 ],
                 "digital_divide": {
-                    "top_tier_avg_growth": 4.5, // Growing
-                    "bottom_tier_avg_growth": 1.2 // Stagnant
+                    "top_tier_avg_growth": 4.5,
+                    "bottom_tier_avg_growth": 1.2
                 },
                 "depth_leaders": [
                     { "country": "Singapore", "skill_depth_ratio": 4.5 }, { "country": "Sweden", "skill_depth_ratio": 3.2 },
-                    { "country": "Finland", "skill_depth_ratio": 2.8 }, { "country": "UK", "skill_depth_ratio": 2.5 }
+                    { "country": "Finland", "skill_depth_ratio": 2.8 }, { "country": "UK", "skill_depth_ratio": 2.5 },
+                    { "country": "Germany", "skill_depth_ratio": 2.2 }
                 ],
-                "correlation": [
-                    { "country": "A", "pct_basic": 20, "pct_above_basic": 40 },
-                    { "country": "B", "pct_basic": 30, "pct_above_basic": 55 },
-                    { "country": "C", "pct_basic": 10, "pct_above_basic": 5 },
-                    { "country": "D", "pct_basic": 80, "pct_above_basic": 75 },
-                    { "country": "E", "pct_basic": 40, "pct_above_basic": 35 }
-                ],
+                "correlation": Array.from({ length: 20 }, () => ({
+                    x: Math.floor(Math.random() * 80),
+                    y: Math.floor(Math.random() * 80)
+                })), // Random scatter for visual effect
                 "regional_index": [
                     { "country_name": "Euro Area", "pct_above_basic": 42 },
                     { "country_name": "OECD", "pct_above_basic": 44 },
-                    { "country_name": "EU", "pct_above_basic": 40 }
+                    { "country_name": "EU", "pct_above_basic": 40 },
+                    { "country_name": "Arab States", "pct_above_basic": 25 },
+                    { "country_name": "Americas", "pct_above_basic": 35 }
                 ]
             };
         }
@@ -205,7 +234,6 @@
             let data;
 
             try {
-                // Try fetching from Real Backend
                 const response = await fetch(`/api/dashboard-data?year=${year}`);
                 if (!response.ok) throw new Error("Backend unavailable");
                 data = await response.json();
@@ -216,95 +244,144 @@
                 document.getElementById('mockNotice').classList.remove('hidden');
             }
 
+            // Transform correlation data if from real backend to match scatter format
+            if (data.correlation && data.correlation[0].pct_basic) {
+                data.correlation = data.correlation.map(d => ({ x: d.pct_basic, y: d.pct_above_basic }));
+            }
+
             updateKPIs(data.digital_divide);
             renderCharts(data);
         }
 
         function updateKPIs(divideData) {
             if (!divideData) return;
-
             const top = divideData.top_tier_avg_growth || 0;
             const bottom = divideData.bottom_tier_avg_growth || 0;
+            const gapIsWidening = top > bottom;
 
             document.getElementById('topGrowth').innerText = top.toFixed(1) + "%";
             document.getElementById('bottomGrowth').innerText = bottom.toFixed(1) + "%";
 
-            // Logic: Is the gap widening?
-            // If Top is growing faster than Bottom, the gap is widening.
-            const status = top > bottom ? "Widening ⚠️" : "Closing ✅";
-            document.getElementById('gapStatus').innerText = status;
-            document.getElementById('gapStatus').className = top > bottom
-                ? "text-2xl font-extrabold text-orange-600"
-                : "text-2xl font-extrabold text-green-600";
+            // Render Donut for Gap Status
+            const ctxDonut = document.getElementById('gapDonut').getContext('2d');
+            createOrUpdateChart('gapDonut', ctxDonut, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Top', 'Bottom'],
+                    datasets: [{
+                        data: [top, bottom],
+                        backgroundColor: ['#00d2ff', '#3a3d54'],
+                        borderWidth: 0,
+                        cutout: '85%'
+                    }]
+                },
+                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }, tooltip: { enabled: false } } }
+            });
+
+            const statusText = document.getElementById('gapStatusText');
+            statusText.innerText = gapIsWidening ? "WIDENING" : "CLOSING";
+            statusText.style.color = gapIsWidening ? "#ff0055" : "#00d2ff";
+            statusText.style.fontWeight = "bold";
         }
 
         function renderCharts(data) {
-            // 1. Skill Depth Ratio (Horizontal Bar)
-            const ctxRatio = document.getElementById('ratioChart').getContext('2d');
-            createOrUpdateChart('ratio', ctxRatio, {
-                type: 'bar',
-                data: {
-                    labels: data.depth_leaders.map(d => d.country_name || d.country),
-                    datasets: [{
-                        label: 'Depth Ratio',
-                        data: data.depth_leaders.map(d => d.skill_depth_ratio),
-                        backgroundColor: '#8b5cf6',
-                        borderRadius: 4
-                    }]
-                },
-                options: { indexAxis: 'y', responsive: true, maintainAspectRatio: false }
-            });
+            Chart.defaults.color = '#737691';
+            Chart.defaults.font.family = "'Outfit', sans-serif";
 
-            // 2. Correlation Scatter
-            const ctxScatter = document.getElementById('scatterChart').getContext('2d');
-            createOrUpdateChart('scatter', ctxScatter, {
-                type: 'scatter',
-                data: {
-                    datasets: [{
-                        label: 'Countries',
-                        data: data.correlation.map(d => ({ x: d.pct_basic, y: d.pct_above_basic })),
-                        backgroundColor: '#3b82f6'
-                    }]
-                },
-                options: {
-                    responsive: true, maintainAspectRatio: false,
-                    scales: {
-                        x: { title: { display: true, text: 'Basic Skills %' } },
-                        y: { title: { display: true, text: 'Advanced Skills %' } }
-                    }
+            // Common Options for Dark Theme
+            const darkOptions = {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { display: false } },
+                scales: {
+                    x: { grid: { color: 'rgba(255, 255, 255, 0.05)' }, ticks: { color: '#737691' } },
+                    y: { grid: { color: 'rgba(255, 255, 255, 0.05)' }, ticks: { color: '#737691' }, beginAtZero: true }
                 }
-            });
+            };
 
-            // 3. Regional Index
+            // 1. Regional Maturity (Curved Area Chart - "Completed Flights" Style)
             const ctxRegion = document.getElementById('regionChart').getContext('2d');
+            // Create Gradient
+            const gradientRegion = ctxRegion.createLinearGradient(0, 0, 0, 300);
+            gradientRegion.addColorStop(0, 'rgba(0, 210, 255, 0.5)'); // Cyan
+            gradientRegion.addColorStop(1, 'rgba(0, 210, 255, 0.0)');
+
             createOrUpdateChart('region', ctxRegion, {
-                type: 'bar',
+                type: 'line',
                 data: {
                     labels: data.regional_index.map(d => d.country_name),
                     datasets: [{
-                        label: 'Advanced Proficiency',
+                        label: 'Maturity',
                         data: data.regional_index.map(d => d.pct_above_basic),
-                        backgroundColor: '#10b981',
-                        borderRadius: 4
+                        backgroundColor: gradientRegion,
+                        borderColor: '#00d2ff',
+                        borderWidth: 2,
+                        fill: true,
+                        tension: 0.4, // Curvy line
+                        pointBackgroundColor: '#171821',
+                        pointBorderColor: '#00d2ff',
+                        pointBorderWidth: 2,
+                        pointRadius: 4
                     }]
                 },
-                options: { responsive: true, maintainAspectRatio: false }
+                options: darkOptions
             });
 
-            // 4. Top Advanced
+            // 2. Top Creators (Horizontal Bar - "Top 5 Stores" Style)
             const ctxTop = document.getElementById('topChart').getContext('2d');
             createOrUpdateChart('top', ctxTop, {
                 type: 'bar',
                 data: {
                     labels: data.top_advanced.map(d => d.country_name || d.country),
                     datasets: [{
-                        label: '% Above Basic',
                         data: data.top_advanced.map(d => d.pct_above_basic),
-                        backgroundColor: '#6366f1',
+                        backgroundColor: (context) => {
+                            const val = context.raw;
+                            // Color logic: Top 3 get bright neon, others get muted
+                            return context.dataIndex < 3 ? '#7000ff' : '#2d2e40';
+                        },
+                        borderRadius: 4,
+                        barThickness: 8
+                    }]
+                },
+                options: {
+                    ...darkOptions,
+                    indexAxis: 'y',
+                    scales: {
+                        x: { display: false },
+                        y: { grid: { display: false }, ticks: { color: '#fff', font: { size: 11 } } }
+                    }
+                }
+            });
+
+            // 3. Scatter (Neon Dots)
+            const ctxScatter = document.getElementById('scatterChart').getContext('2d');
+            createOrUpdateChart('scatter', ctxScatter, {
+                type: 'scatter',
+                data: {
+                    datasets: [{
+                        data: data.correlation, // already processed in loadDashboard
+                        backgroundColor: '#ff0055',
+                        pointRadius: 3,
+                        pointHoverRadius: 6
+                    }]
+                },
+                options: darkOptions
+            });
+
+            // 4. Ratio Chart (Vertical Bars)
+            const ctxRatio = document.getElementById('ratioChart').getContext('2d');
+            createOrUpdateChart('ratio', ctxRatio, {
+                type: 'bar',
+                data: {
+                    labels: data.depth_leaders.map(d => d.country_name || d.country),
+                    datasets: [{
+                        data: data.depth_leaders.map(d => d.skill_depth_ratio),
+                        backgroundColor: '#3a7bd5',
                         borderRadius: 4
                     }]
                 },
-                options: { responsive: true, maintainAspectRatio: false }
+                options: darkOptions
             });
         }
 
