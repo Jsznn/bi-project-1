@@ -52,6 +52,22 @@ def get_dashboard_data(
         # 4. Filter for Range
         df_range = df[(df['year'] >= start_year) & (df['year'] <= end_year)].copy()
         
+        if df_range.empty:
+            return {
+                "start_year": start_year,
+                "end_year": end_year,
+                "top_advanced": [],
+                "digital_divide": {"top_tier_avg_growth": 0, "bottom_tier_avg_growth": 0},
+                "correlation": [],
+                "depth_leaders": [],
+                "regional_trends": {}
+            }
+
+        # Determine effective snapshot year (latest year with data in range)
+        # We prefer the end_year, but if no data exists for it, we take the max available year.
+        available_years = df_range['year'].unique()
+        snapshot_year = end_year if end_year in available_years else max(available_years)
+
         # 5. Separation: Regions vs Countries
         region_codes = ['EMU', 'EUU', 'OED', 'CEB', 'EAS', 'LCN', 'MEA', 'NAC', 'SAS', 'SSF', 'WLD']
         df_regions = df_range[df_range['country_iso_code'].isin(region_codes)]
@@ -59,6 +75,7 @@ def get_dashboard_data(
 
         # --- CALCULATE GROWTH (Start to End) ---
         # Get values at start and end year for each country
+        # Note: We use the actual start/end of the selection for growth, even if snapshot is different.
         growth_df = df_countries[df_countries['year'].isin([start_year, end_year])].pivot(
             index='country_iso_code', columns='year', values='pct_above_basic'
         )
@@ -73,8 +90,8 @@ def get_dashboard_data(
 
         # --- PREPARE RESPONSE ---
         
-        # Snapshot Data (Latest Year in Range)
-        latest_year_df = df_countries[df_countries['year'] == end_year].copy()
+        # Snapshot Data (Latest Available Year)
+        latest_year_df = df_countries[df_countries['year'] == snapshot_year].copy()
         
         # A. Top Countries (Snapshot)
         top_advanced = latest_year_df.nlargest(10, 'pct_above_basic')[['country_name', 'pct_above_basic']].to_dict('records')
@@ -90,10 +107,13 @@ def get_dashboard_data(
         }
 
         # C. Correlation (Snapshot)
-        correlation_data = latest_year_df[['country_name', 'pct_basic', 'pct_above_basic']].to_dict('records')
+        # Filter out 0s to make the chart cleaner
+        correlation_df = latest_year_df[(latest_year_df['pct_basic'] > 0) | (latest_year_df['pct_above_basic'] > 0)]
+        correlation_data = correlation_df[['country_name', 'pct_basic', 'pct_above_basic']].to_dict('records')
 
         # D. Skill Depth Leaders (Snapshot)
-        depth_leaders = latest_year_df.nlargest(10, 'skill_depth_ratio')[['country_name', 'skill_depth_ratio']].to_dict('records')
+        # Filter out 0 ratio
+        depth_leaders = latest_year_df[latest_year_df['skill_depth_ratio'] > 0].nlargest(10, 'skill_depth_ratio')[['country_name', 'skill_depth_ratio']].to_dict('records')
 
         # E. Regional Trends (Full Range)
         # Group by region and year to get the trend line
@@ -106,6 +126,7 @@ def get_dashboard_data(
         return {
             "start_year": start_year,
             "end_year": end_year,
+            "snapshot_year": int(snapshot_year), # Return this so frontend knows
             "top_advanced": top_advanced,
             "digital_divide": divide_data,
             "correlation": correlation_data,
